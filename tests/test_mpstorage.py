@@ -2,8 +2,8 @@ import pytest
 from mp_utils import MPStorage
 import sys
 import logging
-logger = logging.getLogger()
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+# logger = logging.getLogger()
+# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 address = ('', 23456)
 authkey = b'local:23456'
