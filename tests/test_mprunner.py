@@ -3,8 +3,7 @@ import time
 from mp_utils import MPRunner, MPFileHandler
 from multiprocessing import Manager
 import logging
-# logging.basicConfig(filename='logs/test_mprunner.log', filemode='w',
-#                     level=logging.DEBUG, format='%(name)s:%(message)s')
+
 testlogger = logging.getLogger('testlogger')
 h = MPFileHandler('logs/test_mprunner.log', mode='w')
 h.setFormatter(logging.Formatter('%(name)s:%(message)s'))
@@ -65,7 +64,7 @@ def test_register(capsys):
     assert out == 'arg1\narg2\n'
 
     p = mp.register(func_args, False, ('arg1', 'arg2'))
-    # test runs with kwargs
+    # test runs with args
     assert p._target is func_args
     assert p.daemon is False
 
@@ -75,7 +74,7 @@ def test_register(capsys):
     assert out == 'arg1\narg2\n'
 
     p = mp.register(func_kw_a_args, False, ('arg1', ), dict(arg2='arg2'))
-    # test runs with kwargs
+    # test runs with args and kwargs
     assert p._target is func_kw_a_args
     assert p.daemon is False
 
@@ -92,7 +91,7 @@ def test_run(capsys):
     mp = MPRunner()
     mp.register(func_no_args)
     mp.register(func_no_args)
-    mp.run()
+    mp.runSerial()
 
     time.sleep(.5)
     assert capsys.readouterr().out == "no args\nno args\n"
@@ -153,7 +152,7 @@ def test_register_multiple_dict(capsys):
         assert p._target is t
 
     capsys.readouterr()  # junk prints
-    mp.run()
+    mp.runSerial()
 
     out = capsys.readouterr().out.split('\n')
     testlogger.info(out)
@@ -177,7 +176,7 @@ def test_register_multiple_list(capsys):
         assert p._target is t
 
     capsys.readouterr()  # junk prints
-    mp.run()
+    mp.runSerial()
 
     out = capsys.readouterr().out.split('\n')
     testlogger.info(out)
@@ -200,6 +199,44 @@ def test_func_no_args_daemon():
     assert mp.procs['func_no_args'][0].daemon is True
 
 
+def test_delay_not_daemon():
+    wait = 1
+
+    mp = MPRunner({delay:(False,(wait,))})
+
+    start = time.time()
+    mp.start()
+    mp.join()
+    end = time.time()
+
+    elapsed = end - start
+    max = wait * 1.2
+    assert elapsed > wait
+    assert elapsed < max
+
+
+def test_delay_daemon():
+    wait = 1
+
+    mp = MPRunner({delay:(True,(wait,))})
+
+    start = time.time()
+    mp.start()
+    mp.join(.1)
+    end = time.time()
+
+    elapsed = end - start
+    max = .2
+    assert elapsed < max
+
+    mp.join()
+    end = time.time()
+    elapsed = end - start
+    max = wait * 1.2
+    assert elapsed > wait
+    assert elapsed < max
+
+
 def test_func_kw_args(capsys):
     testlogger.info("-----------Starting test_func_kw_args")
 
@@ -211,7 +248,7 @@ def test_func_kw_args(capsys):
     assert mp.procs['func_kw_args'][0].daemon is False
 
     capsys.readouterr()  # junk prints
-    mp.procs['func_kw_args'][0].run()
+    mp.runSerial()
 
     out = capsys.readouterr().out
     assert out == 'arg1\narg2\n'
@@ -228,7 +265,7 @@ def test_func_kw_a_args(capsys):
     assert mp.procs['func_kw_a_args'][0].daemon is False
 
     capsys.readouterr()  # junk prints
-    mp.procs['func_kw_a_args'][0].run()
+    mp.runSerial()
 
     out = capsys.readouterr().out
     assert out == 'arg1\narg2\n'
@@ -245,11 +282,13 @@ def test_func_args(capsys):
     assert mp.procs['func_args'][0].daemon is False
 
     capsys.readouterr()  # junk prints
-    mp.procs['func_args'][0].run()
+    mp.runSerial()
 
     out = capsys.readouterr().out
     assert out == 'arg1\narg2\n'
 
+
+# TODO: finish creating tests
 
 def test_active_children():
     pass

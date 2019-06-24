@@ -271,7 +271,7 @@ class MPRunner(object):
         else:
             raise NotImplementedError(f"Cannot handle {process}")
 
-    def run(self):
+    def runSerial(self):
         self.logger.info(f"Starting {sum(len(p) for p in self.procs.values())} processes.")
         for name, prs in self.procs.items():
             for pr in prs:

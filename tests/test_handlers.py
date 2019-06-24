@@ -153,7 +153,7 @@ def test_multiprocess_stream(capfd):
     [p.join() for p in ps]
 
     _lines = capfd.readouterr().out
-    open(filename+'2', 'w').writelines(_lines)
+    open(filename[:-4]+'2.log', 'w').writelines(_lines)
     _lines = _lines.split()
     assert len(_lines)>10
 
