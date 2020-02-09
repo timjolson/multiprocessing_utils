@@ -3,6 +3,7 @@ import sys
 import os
 import logging
 import multiprocessing as mp
+import redis
 from mp_utils import MPFileHandler, MPStreamHandler
 
 logging.basicConfig(filename='logs/test_handlers_redis.log', level=logging.DEBUG, filemode='w', format="%(name)s:%(message)s")

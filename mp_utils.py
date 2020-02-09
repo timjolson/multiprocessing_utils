@@ -382,14 +382,14 @@ def _get_stream_identifier(stream):
 
 
 class MPStreamHandler(logging.StreamHandler):
-    # logger = logging.getLogger('.'.join([__name__, 'MPStreamHandler']))
-    # logger.addHandler(logging.NullHandler())
-
-    def __init__(self, stream=None):
+    def __init__(self, stream=None, formatter=None, **fmtkw):
         if stream is None:
             stream = sys.stderr
         self.stream = stream
         logging.Handler.__init__(self)
+        if formatter is None:
+            formatter = MultilineFormatter(**fmtkw)
+        self.setFormatter(formatter)
 
     def lock_factory(self, identifier):
         return _getlock(identifier)
@@ -427,21 +427,24 @@ class MPStreamHandler(logging.StreamHandler):
 
 
 class MPFileHandler(MPStreamHandler):
-    # logger = logging.getLogger('.'.join([__name__, 'MPFileHandler']))
-    # logger.addHandler(logging.NullHandler())
-
-    def __init__(self, filename, mode='a', encoding=None, delay=False):
+    def __init__(self, filename, mode='a', encoding=None, delay=False,
+                 formatter=None, **fmtkw):
         filename = os.fspath(filename)
 
         self.baseFilename = os.path.abspath(filename)
         self.mode = mode
         self.encoding = encoding
         self.delay = delay
+        if formatter is None:
+            formatter = MultilineFormatter(**fmtkw)
+
         if delay:
             logging.Handler.__init__(self)
+            self.setFormatter(formatter)
             self.stream = None
         else:
-            MPStreamHandler.__init__(self, self._open())
+            MPStreamHandler.__init__(self, self._open(),
+                                     formatter=formatter)
 
         filepath = os.path.dirname(self.baseFilename)
         os.makedirs(filepath, exist_ok=True)
@@ -475,6 +478,24 @@ class MPFileHandler(MPStreamHandler):
             self.handleError(record)
 
 
-__all__ = ['MPStreamHandler', 'MPFileHandler', 'MPStorage', 'MPRunner']
+class MultilineFormatter(logging.Formatter):
+    """
+    Isnpired by https://stackoverflow.com/a/45217732
+    """
+    def format(self, record: logging.LogRecord):
+        save_msg = record.msg
+        if not isinstance(save_msg, str):
+            save_msg = str(save_msg)
+        output = ""
+        for line in save_msg.splitlines():
+            record.msg = line
+            output += super().format(record) + "\n"
+        output = output[:-1]
+        record.msg = save_msg
+        record.message = output
+        return output
+
+
+__all__ = ['MPStreamHandler', 'MPFileHandler', 'MPStorage', 'MultilineFormatter', 'MPRunner']
 if 'redis' in sys.modules:
     __all__.append('RedisStorage')
